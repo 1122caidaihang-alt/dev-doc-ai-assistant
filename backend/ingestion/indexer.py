@@ -4,43 +4,51 @@
 """
 import time
 import hashlib
-import httpx
 import chromadb
 from typing import List, Dict
 from config import (
-    KIMI_API_KEY, KIMI_BASE_URL, KIMI_EMBEDDING_MODEL,
-    CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME,
+    EMBEDDING_MODEL, CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME,
 )
 from chromadb.config import Settings
+
+# 全局单例 — 模型只加载一次，后续复用
+_embedding_model = None
+
+# HF 镜像 — 国内加速下载模型
+# hf-mirror.com 是国内可用的 HuggingFace 镜像
+HF_MIRROR = "https://hf-mirror.com"
+
+
+def get_embedding_model():
+    """
+    懒加载 sentence-transformers 模型
+    第一次调用时下载模型（~80MB），之后走缓存
+    使用 hf-mirror.com 国内镜像下载
+    """
+    global _embedding_model
+    if _embedding_model is None:
+        import os
+        # 设置 HF 镜像环境变量，sentence-transformers 会自动使用
+        os.environ["HF_ENDPOINT"] = HF_MIRROR
+        from sentence_transformers import SentenceTransformer
+        print(f"[embedding] 正在从镜像 {HF_MIRROR} 加载模型 {EMBEDDING_MODEL}...")
+        _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+        print(f"[embedding] 模型加载完成")
+    return _embedding_model
 
 
 def get_embedding(text: str) -> List[float]:
     """
-    调 Kimi Embedding API，把文字转成向量
-    返回 1024 个 float 的列表
+    用本地 sentence-transformers 模型把文字转成向量
+    返回 384 个 float 的列表（all-MiniLM-L6-v2 的输出维度）
 
     这是整个 RAG 系统最基础的操作 — 文字 → 向量
+    不需要 API Key，不需要网络，本地 CPU 即可运行
     """
-    if not KIMI_API_KEY or KIMI_API_KEY == "sk-your-key-here":
-        raise RuntimeError("KIMI_API_KEY 未设置，请在 backend/.env 文件中配置真实的 API Key")
-
-    url = f"{KIMI_BASE_URL}/embeddings"
-    headers = {
-        "Authorization": f"Bearer {KIMI_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    body = {
-        "model": KIMI_EMBEDDING_MODEL,
-        "input": text,
-    }
-
-    try:
-        response = httpx.post(url, headers=headers, json=body, timeout=30.0)
-        response.raise_for_status()
-        data = response.json()
-        return data["data"][0]["embedding"]
-    except httpx.HTTPError as e:
-        raise RuntimeError(f"Embedding API 调用失败: {e}")
+    model = get_embedding_model()
+    # encode() 返回 numpy array，转成 Python list
+    embedding = model.encode(text, normalize_embeddings=True)
+    return embedding.tolist()
 
 
 def compute_md5_id(text: str) -> str:

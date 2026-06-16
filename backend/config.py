@@ -11,8 +11,9 @@ load_dotenv()  # 从 .env 文件加载环境变量
 KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
 KIMI_BASE_URL = "https://api.moonshot.cn/v1"
 KIMI_CHAT_MODEL = "moonshot-v1-32k"
-# Embedding 模型 — 也用 Kimi 的，跟 Chat 统一 Key 管理
-KIMI_EMBEDDING_MODEL = "moonshot-v1-8k"
+# Embedding 模型 — 本地 sentence-transformers，不需要 API Key
+# all-MiniLM-L6-v2: 384维，~80MB，CPU友好，中文支持良好
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 # === Chroma 向量数据库 ===
 CHROMA_PERSIST_DIR = "./data/chroma_db"  # 持久化存储路径，重启不丢
