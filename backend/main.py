@@ -10,7 +10,7 @@ from models.schemas import IngestRequest, IngestResponse, HealthResponse, ChatRe
 from ingestion.loader import load_documents
 from ingestion.splitter import split_documents
 from ingestion.indexer import build_index, get_collection_stats
-from services.chat_service import ask
+from services.chat_service import ask, ask_with_agent
 from config import CHUNK_SIZE, CHUNK_OVERLAP, KIMI_API_KEY
 
 app = FastAPI(title="开发者文档 AI 知识助手", version="0.1.0")
@@ -90,7 +90,7 @@ async def chat(request: ChatRequest):
     async def generate():
         """SSE 生成器 — 把 ask() 的输出转成 SSE 格式的字节流"""
         try:
-            for chunk in ask(request.question, request.session_id):
+            for chunk in ask_with_agent(request.question, request.session_id):
                 chunk_type = chunk.get("type", "")
                 content = chunk.get("content", "")
 

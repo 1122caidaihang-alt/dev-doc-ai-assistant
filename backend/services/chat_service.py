@@ -141,3 +141,60 @@ def ask(question: str, session_id: str = "default"):
     # 推送引用来源
     yield {"type": "sources", "sources": list(set(doc["source"] for doc in docs))}
     yield {"type": "done", "content": ""}
+
+
+def ask_with_agent(question: str, session_id: str = "default"):
+    """
+    带 Agent 决策的问答 — Phase 3 新增
+    跟 ask() 的区别：LLM 通过 ReAct 循环自己决定要不要查文档、查几次
+
+    流程:
+      Agent 收到问题 → Thought: 需要查文档
+      → Action: search_docs("权限注解配置")
+      → Observation: [检索结果]
+      → Thought: 信息够了
+      → Final Answer: 输出答案
+    """
+    from services.agent_service import get_agent
+    agent = get_agent()
+
+    # 推送初始思考步骤
+    yield {"type": "thinking", "content": "Agent 正在分析问题意图..."}
+
+    try:
+        # AgentExecutor.invoke() 执行完整的 ReAct 循环
+        # 返回: {"input": "...", "output": "最终答案", "intermediate_steps": [...]}
+        result = agent.invoke({"input": question})
+
+        # intermediate_steps 包含每一步的 (AgentAction, observation)
+        # AgentAction 有 .tool 和 .tool_input 属性
+        if "intermediate_steps" in result:
+            for step in result["intermediate_steps"]:
+                action = step[0]  # AgentAction 对象
+                observation = step[1]  # 工具返回的字符串
+
+                # 推送工具调用信息
+                yield {"type": "tool_call",
+                       "tool": action.tool,
+                       "input": action.tool_input}
+                yield {"type": "tool_result",
+                       "content": observation[:300] + ("..." if len(observation) > 300 else "")}
+
+            yield {"type": "tool_end",
+                   "tool": "Agent 推理完成",
+                   "result_count": len(result["intermediate_steps"]),
+                   "sources": []}
+
+        # 推送答案 — 模拟流式效果（逐字符）
+        # Agent.invoke 是一次性返回的，不是真流式
+        # 但我们可以按字符分块推送，前端看起来还是流式的
+        answer = result.get("output", "")
+        yield {"type": "thinking", "content": "正在组织回答..."}
+
+        for char in answer:
+            yield {"type": "answer", "content": char}
+
+        yield {"type": "done", "content": ""}
+
+    except Exception as e:
+        yield {"type": "error", "content": f"Agent 执行失败: {str(e)}"}
