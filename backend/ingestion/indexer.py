@@ -16,25 +16,38 @@ logger = get_logger("indexer")
 
 # 全局单例 — 模型只加载一次，后续复用
 _embedding_model = None
+_model_lock = None  # 线程锁，懒初始化
+
+
+def _get_model_lock():
+    """懒初始化线程锁（避免 import 时创建）"""
+    global _model_lock
+    if _model_lock is None:
+        import threading
+        _model_lock = threading.Lock()
+    return _model_lock
 
 
 def get_embedding_model():
     """
-    懒加载 sentence-transformers 模型
+    懒加载 sentence-transformers 模型（线程安全）
     第一次调用时下载模型（~80MB），之后走缓存
     通过 HF_ENDPOINT 环境变量控制镜像源（国内用 hf-mirror.com，国外不设）
     """
     global _embedding_model
     if _embedding_model is None:
-        import os
-        # HF_ENDPOINT 从环境变量读取（config.py 已 load_dotenv）
-        if HF_ENDPOINT:
-            os.environ["HF_ENDPOINT"] = HF_ENDPOINT
-        from sentence_transformers import SentenceTransformer
-        effective_endpoint = HF_ENDPOINT or "huggingface.co（默认）"
-        logger.info(f"正在加载模型 {EMBEDDING_MODEL}（{effective_endpoint}）...")
-        _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
-        logger.info("模型加载完成")
+        with _get_model_lock():
+            # 双重检查：拿到锁后再确认一次，防止等锁期间别的线程已加载完
+            if _embedding_model is not None:
+                return _embedding_model
+            import os
+            if HF_ENDPOINT:
+                os.environ["HF_ENDPOINT"] = HF_ENDPOINT
+            from sentence_transformers import SentenceTransformer
+            effective_endpoint = HF_ENDPOINT or "huggingface.co（默认）"
+            logger.info(f"正在加载模型 {EMBEDDING_MODEL}（{effective_endpoint}）...")
+            _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+            logger.info("模型加载完成")
     return _embedding_model
 
 

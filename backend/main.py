@@ -20,25 +20,30 @@ app = FastAPI(title="开发者文档 AI 知识助手", version="0.1.0")
 @app.on_event("startup")
 async def startup():
     """
-    服务启动时恢复所有已持久化的 session + 预热 embedding 模型
+    服务启动：恢复持久化 session + 后台预热 embedding 模型
 
     ChromaDB 已本地预建并提交到 git（12MB），部署时直接加载，不需入库。
-    这避免了 Render 512MB 内存限制下 OOM 的问题。
 
-    预热 sentence-transformers：模型首次加载需 10-15 秒，
-    若在首次请求时才加载会阻塞事件循环，导致 SSE 连接超时。
+    模型预热放到后台线程：all-MiniLM-L6-v2 下载需要 10-60 秒（80MB），
+    若在主线程同步加载会阻塞 uvicorn 端口绑定，导致 Render 端口扫描超时。
+    后台加载 → 端口立即可用 → 首次请求时模型大概率已就绪。
     """
     import logging
+    import threading
     logger = logging.getLogger("uvicorn")
 
     from services.memory_service import load_all_sessions
     load_all_sessions()
 
-    # 预热 embedding 模型（all-MiniLM-L6-v2，80MB → 加载 10-15s）
-    logger.info("预热 embedding 模型...")
-    from ingestion.indexer import get_embedding
-    get_embedding("warmup")
-    logger.info("embedding 模型预热完成")
+    # 后台线程预热 embedding 模型，不阻塞启动
+    def _warmup():
+        logger.info("后台预热 embedding 模型...")
+        from ingestion.indexer import get_embedding
+        get_embedding("warmup")
+        logger.info("embedding 模型预热完成")
+
+    threading.Thread(target=_warmup, daemon=True).start()
+    logger.info("服务已启动（模型后台加载中...）")
 
 # CORS 跨域配置 — 前端 Vercel 调后端 Railway 需要这个
 app.add_middleware(
