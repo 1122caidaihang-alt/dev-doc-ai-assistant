@@ -1,0 +1,102 @@
+[
+  {
+    "question": "Redis 缓存怎么配置",
+    "ground_truth": "在 application.yml 中配置 spring.cache.type=redis，并配置 spring.redis.host、port、password 等连接信息",
+    "relevant_sources": ["redis-cache.md"]
+  },
+  {
+    "question": "多数据源读写分离如何实现",
+    "ground_truth": "使用 dynamic-datasource-spring-boot-starter，配置 primary 和 secondary 数据源，通过 @DS 注解切换",
+    "relevant_sources": ["dynamic-datasource.md"]
+  },
+  {
+    "question": "Spring Security 权限控制怎么用",
+    "ground_truth": "使用 @PreAuthorize 注解配合 hasPermission/hasRole 表达式，在 SecurityConfiguration 中配置权限规则",
+    "relevant_sources": ["resource-permission.md"]
+  },
+  {
+    "question": "怎么配置 MyBatis 数据库连接",
+    "ground_truth": "在 application.yml 中配置 spring.datasource 节点，包含 url、username、password、driver-class-name",
+    "relevant_sources": ["mybatis.md", "quick-start.md"]
+  },
+  {
+    "question": "接口参数校验怎么做",
+    "ground_truth": "使用 @Valid 或 @Validated 注解，配合 Bean Validation 注解如 @NotNull、@NotEmpty、@Size 等",
+    "relevant_sources": ["validator.md"]
+  },
+  {
+    "question": "消息队列 Kafka 怎么集成",
+    "ground_truth": "引入 yudao-spring-boot-starter-mq，配置 Kafka 连接信息，使用 KafkaProducer 和 KafkaConsumer",
+    "relevant_sources": ["message-queue/kafka.md"]
+  },
+  {
+    "question": "RabbitMQ 怎么配置和使用",
+    "ground_truth": "引入 spring-boot-starter-amqp，配置 RabbitMQ 连接信息，定义 Queue、Exchange、Binding",
+    "relevant_sources": ["message-queue/rabbitmq.md"]
+  },
+  {
+    "question": "定时任务怎么创建",
+    "ground_truth": "使用 @Scheduled 注解或引入 XXL-JOB，配置 cron 表达式，在 scheduled 包下创建定时任务类",
+    "relevant_sources": ["job.md", "async-task.md"]
+  },
+  {
+    "question": "文件上传怎么实现",
+    "ground_truth": "使用 FileController 的 upload 接口，配置文件存储路径和上传大小限制，返回文件访问 URL",
+    "relevant_sources": ["file.md"]
+  },
+  {
+    "question": "短信发送怎么配置",
+    "ground_truth": "配置阿里云或腾讯云短信服务，设置 accessKey/secretKey，使用 SmsClient 发送短信",
+    "relevant_sources": ["sms.md"]
+  },
+  {
+    "question": "分布式锁怎么用",
+    "ground_truth": "使用 @RedisLock 注解或 Redisson 的 RLock，指定锁的 key 和过期时间，防止并发问题",
+    "relevant_sources": ["distributed-lock.md"]
+  },
+  {
+    "question": "WebSocket 实时通信怎么做",
+    "ground_truth": "引入 yudao-spring-boot-starter-websocket，配置 WebSocket 端点，使用 WebSocketSession 管理连接",
+    "relevant_sources": ["websocket.md"]
+  },
+  {
+    "question": "OAuth2 第三方登录怎么接入",
+    "ground_truth": "配置 OAuth2 客户端信息（clientId、clientSecret），对接微信/钉钉/企业微信等第三方平台",
+    "relevant_sources": ["oauth2.md", "social-user.md"]
+  },
+  {
+    "question": "数据权限怎么控制",
+    "ground_truth": "使用 @DataPermission 注解，通过 dept_id 或 creator 字段过滤，实现部门数据隔离",
+    "relevant_sources": ["data-permission.md"]
+  },
+  {
+    "question": "敏感词过滤怎么实现",
+    "ground_truth": "引入 yudao-spring-boot-starter-sensitive-word，配置敏感词库，自动过滤或替换文本中的敏感词",
+    "relevant_sources": ["sensitive-word.md"]
+  },
+  {
+    "question": "数据脱敏怎么做",
+    "ground_truth": "使用 @Desensitize 注解标记字段，配置脱敏规则（手机号、身份证、银行卡等），自动脱敏",
+    "relevant_sources": ["desensitize.md"]
+  },
+  {
+    "question": "Docker 如何部署项目",
+    "ground_truth": "编写 Dockerfile，使用 docker-compose 编排 MySQL、Redis、后端服务，配置环境变量和端口映射",
+    "relevant_sources": ["deployment-docker.md"]
+  },
+  {
+    "question": "HTTPS 证书怎么配置",
+    "ground_truth": "获取 SSL 证书（Let's Encrypt 或自签名），在 Nginx 或 Spring Boot 中配置证书路径和端口转发",
+    "relevant_sources": ["https.md"]
+  },
+  {
+    "question": "SaaS 多租户怎么实现",
+    "ground_truth": "使用 tenant_id 字段隔离数据，配置 TenantInterceptor 拦截请求，实现多租户数据隔离",
+    "relevant_sources": ["saas-tenant.md"]
+  },
+  {
+    "question": "工作流如何设计和实现",
+    "ground_truth": "使用 Flowable 引擎，设计 BPMN 流程图，配置审批节点和条件分支，实现流程驱动",
+    "relevant_sources": ["bpm/model-designer-bpmn.md", "bpm.md"]
+  }
+]

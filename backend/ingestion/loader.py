@@ -3,6 +3,9 @@
 """
 import os
 from typing import List, Dict
+from logger import get_logger
+
+logger = get_logger("loader")
 
 
 def load_documents(doc_path: str) -> List[Dict[str, str]]:
@@ -27,7 +30,7 @@ def load_documents(doc_path: str) -> List[Dict[str, str]]:
                         "content": content,
                     })
                 except Exception as e:
-                    print(f"[WARN] 读取 {filepath} 失败: {e}")
+                    logger.warning(f"读取 {filepath} 失败: {e}")
 
-    print(f"[loader] 扫描完成: {len(documents)} 个 .md 文件")
+    logger.info(f"扫描完成: {len(documents)} 个 .md 文件")
     return documents

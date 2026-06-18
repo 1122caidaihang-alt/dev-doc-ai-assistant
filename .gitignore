@@ -8,11 +8,12 @@ venv/
 # 环境变量（含 API Key，绝对不能提交）
 .env
 
-# Chroma 数据（自动生成，不需要版本控制）
+# Chroma 向量数据库 — 部署时自动重建，不入库（12MB+）
 backend/data/chroma_db/
 
-# 原始文档（从芋道仓库复制的，不是项目源码）
-backend/data/docs/
+# 运行时数据 — 每个环境独立
+backend/data/sessions/
+backend/data/logs/
 
 # IDE
 .vscode/

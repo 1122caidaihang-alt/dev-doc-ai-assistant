@@ -7,10 +7,10 @@ from dotenv import load_dotenv
 
 load_dotenv()  # 从 .env 文件加载环境变量
 
-# === Kimi API ===
-KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
-KIMI_BASE_URL = "https://api.moonshot.cn/v1"
-KIMI_CHAT_MODEL = "moonshot-v1-32k"
+# === DeepSeek API ===
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
+DEEPSEEK_CHAT_MODEL = "deepseek-chat"
 # Embedding 模型 — 本地 sentence-transformers，不需要 API Key
 # all-MiniLM-L6-v2: 384维，~80MB，CPU友好，中文支持良好
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
@@ -37,4 +37,5 @@ CACHE_MAX_SIZE = 100                # 每个 session 最多缓存 100 个问题
 MAX_CONTEXT_TOKENS = 28000       # 上下文超此值触发摘要压缩
 SUMMARY_TRIGGER_RATIO = 0.8      # 窗口用掉 80% 就触发压缩
 RECENT_ROUNDS_KEPT = 5           # 压缩时保留最近 N 轮原文
+MAX_MESSAGES_PER_SESSION = 200   # 每个 session 最多保留的消息数（防内存无限增长）
 MAX_REACT_ITERATIONS = 5         # Agent 循环上限，防死循环

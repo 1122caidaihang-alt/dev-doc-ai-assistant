@@ -10,6 +10,9 @@ from config import (
     EMBEDDING_MODEL, CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME,
 )
 from chromadb.config import Settings
+from logger import get_logger
+
+logger = get_logger("indexer")
 
 # 全局单例 — 模型只加载一次，后续复用
 _embedding_model = None
@@ -31,9 +34,9 @@ def get_embedding_model():
         # 设置 HF 镜像环境变量，sentence-transformers 会自动使用
         os.environ["HF_ENDPOINT"] = HF_MIRROR
         from sentence_transformers import SentenceTransformer
-        print(f"[embedding] 正在从镜像 {HF_MIRROR} 加载模型 {EMBEDDING_MODEL}...")
+        logger.info(f"正在从镜像 {HF_MIRROR} 加载模型 {EMBEDDING_MODEL}...")
         _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
-        print(f"[embedding] 模型加载完成")
+        logger.info("模型加载完成")
     return _embedding_model
 
 
@@ -107,14 +110,14 @@ def build_index(chunks: List[Dict[str, str]]) -> int:
             indexed_count += 1
 
             if (i + 1) % 10 == 0:
-                print(f"[indexer] 进度: {i+1}/{total}")
+                logger.info(f"进度: {i+1}/{total}")
 
         except Exception as e:
-            print(f"[indexer] 索引 {chunk['id']} 失败: {e}")
+            logger.error(f"索引 {chunk['id']} 失败: {e}")
             continue
 
     elapsed = time.time() - start_time
-    print(f"[indexer] 索引完成: {indexed_count} 个 chunk, 耗时 {elapsed:.1f}s")
+    logger.info(f"索引完成: {indexed_count} 个 chunk, 耗时 {elapsed:.1f}s")
     return indexed_count
 
 

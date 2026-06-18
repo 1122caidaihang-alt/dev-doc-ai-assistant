@@ -4,6 +4,9 @@
 """
 from typing import List, Dict
 from config import CHUNK_SIZE, CHUNK_OVERLAP
+from logger import get_logger
+
+logger = get_logger("splitter")
 
 
 def split_text(text: str, chunk_size: int = CHUNK_SIZE,
@@ -55,5 +58,5 @@ def split_documents(documents: List[Dict[str, str]],
                 "content": chunk,
             })
 
-    print(f"[splitter] 切片完成: {len(documents)} 份文档 → {len(all_chunks)} 个 chunk")
+    logger.info(f"切片完成: {len(documents)} 份文档 → {len(all_chunks)} 个 chunk")
     return all_chunks

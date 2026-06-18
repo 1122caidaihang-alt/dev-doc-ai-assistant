@@ -27,5 +27,5 @@ class HealthResponse(BaseModel):
     """GET /health 的响应体"""
     status: str
     chroma: str = "unknown"
-    kimi_api: str = "unknown"
+    deepseek_api: str = "unknown"
     indexed_docs: int = 0
