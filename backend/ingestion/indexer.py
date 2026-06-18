@@ -7,7 +7,7 @@ import hashlib
 import chromadb
 from typing import List, Dict
 from config import (
-    EMBEDDING_MODEL, CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME,
+    EMBEDDING_MODEL, CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME, HF_ENDPOINT,
 )
 from chromadb.config import Settings
 from logger import get_logger
@@ -17,24 +17,22 @@ logger = get_logger("indexer")
 # 全局单例 — 模型只加载一次，后续复用
 _embedding_model = None
 
-# HF 镜像 — 国内加速下载模型
-# hf-mirror.com 是国内可用的 HuggingFace 镜像
-HF_MIRROR = "https://hf-mirror.com"
-
 
 def get_embedding_model():
     """
     懒加载 sentence-transformers 模型
     第一次调用时下载模型（~80MB），之后走缓存
-    使用 hf-mirror.com 国内镜像下载
+    通过 HF_ENDPOINT 环境变量控制镜像源（国内用 hf-mirror.com，国外不设）
     """
     global _embedding_model
     if _embedding_model is None:
         import os
-        # 设置 HF 镜像环境变量，sentence-transformers 会自动使用
-        os.environ["HF_ENDPOINT"] = HF_MIRROR
+        # HF_ENDPOINT 从环境变量读取（config.py 已 load_dotenv）
+        if HF_ENDPOINT:
+            os.environ["HF_ENDPOINT"] = HF_ENDPOINT
         from sentence_transformers import SentenceTransformer
-        logger.info(f"正在从镜像 {HF_MIRROR} 加载模型 {EMBEDDING_MODEL}...")
+        effective_endpoint = HF_ENDPOINT or "huggingface.co（默认）"
+        logger.info(f"正在加载模型 {EMBEDDING_MODEL}（{effective_endpoint}）...")
         _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
         logger.info("模型加载完成")
     return _embedding_model

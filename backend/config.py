@@ -19,6 +19,9 @@ DEEPSEEK_CHAT_MODEL = "deepseek-chat"
 # Embedding 模型 — 本地 sentence-transformers，不需要 API Key
 # all-MiniLM-L6-v2: 384维，~80MB，CPU友好，中文支持良好
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+# HuggingFace 镜像（国内加速），不设则用默认 huggingface.co
+# 本地开发设 HF_ENDPOINT=https://hf-mirror.com，Render 部署不设
+HF_ENDPOINT = os.getenv("HF_ENDPOINT", "")
 
 # === Chroma 向量数据库 ===
 CHROMA_PERSIST_DIR = "./data/chroma_db"  # 持久化存储路径，重启不丢
