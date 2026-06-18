@@ -33,7 +33,7 @@ async def startup():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,   # 不用 cookie，True 跟 allow_origins=["*"] 冲突
     allow_methods=["*"],
     allow_headers=["*"],
 )
