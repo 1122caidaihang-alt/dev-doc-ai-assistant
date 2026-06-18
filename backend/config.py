@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 
 load_dotenv()  # 从 .env 文件加载环境变量
 
+# === 内存优化（Render 免费版只有 512MB） ===
+# 限制 PyTorch 线程数，减少内存占用
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+
 # === DeepSeek API ===
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"

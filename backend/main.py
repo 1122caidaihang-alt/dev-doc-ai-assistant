@@ -20,33 +20,14 @@ app = FastAPI(title="开发者文档 AI 知识助手", version="0.1.0")
 @app.on_event("startup")
 async def startup():
     """
-    服务启动时执行：
-    1. 恢复所有已持久化的 session
-    2. 如果 ChromaDB 为空 → 自动扫描 data/docs/ 并入库（首次部署/重启后）
-    """
-    from services.memory_service import load_all_sessions, list_sessions_info
-    load_all_sessions()
+    服务启动时恢复所有已持久化的 session
 
-    # 自动入库：检查 ChromaDB 是否有数据，没有就自动建索引
-    stats = get_collection_stats()
-    if stats["count"] == 0:
-        import logging
-        logger = logging.getLogger("uvicorn")
-        logger.info("ChromaDB 为空，开始自动入库...")
-        try:
-            doc_path = "data/docs"
-            if os.path.isdir(doc_path):
-                docs = load_documents(doc_path)
-                if docs:
-                    chunks = split_documents(docs, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP)
-                    count = build_index(chunks)
-                    logger.info(f"自动入库完成: {count} chunks")
-                else:
-                    logger.warning("data/docs/ 下未找到 .md 文档")
-            else:
-                logger.warning(f"文档目录不存在: {doc_path}")
-        except Exception as e:
-            logger.error(f"自动入库失败: {e}")
+    ChromaDB 已本地预建并提交到 git（12MB），部署时直接加载，不需入库。
+    这避免了 Render 512MB 内存限制下 OOM 的问题。
+    如果 ChromaDB 为空（本地开发未入库），仍可手动调 POST /ingest。
+    """
+    from services.memory_service import load_all_sessions
+    load_all_sessions()
 
 # CORS 跨域配置 — 前端 Vercel 调后端 Railway 需要这个
 app.add_middleware(
