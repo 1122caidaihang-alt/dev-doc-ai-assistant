@@ -16,12 +16,10 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 DEEPSEEK_CHAT_MODEL = "deepseek-chat"
-# Embedding 模型 — 本地 sentence-transformers，不需要 API Key
-# all-MiniLM-L6-v2: 384维，~80MB，CPU友好，中文支持良好
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-# HuggingFace 镜像（国内加速），不设则用默认 huggingface.co
-# 本地开发设 HF_ENDPOINT=https://hf-mirror.com，Render 部署不设
-HF_ENDPOINT = os.getenv("HF_ENDPOINT", "")
+# Embedding 模型 — 本地加载，不依赖网络下载
+# all-MiniLM-L6-v2: 384维，~88MB，CPU友好，中文支持良好
+# 模型文件已提交到 git（data/models/），部署时无需下载
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "./data/models/all-MiniLM-L6-v2")
 
 # === Chroma 向量数据库 ===
 CHROMA_PERSIST_DIR = "./data/chroma_db"  # 持久化存储路径，重启不丢

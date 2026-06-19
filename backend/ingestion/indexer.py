@@ -7,7 +7,7 @@ import hashlib
 import chromadb
 from typing import List, Dict
 from config import (
-    EMBEDDING_MODEL, CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME, HF_ENDPOINT,
+    EMBEDDING_MODEL, CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME,
 )
 from chromadb.config import Settings
 from logger import get_logger
@@ -31,21 +31,16 @@ def _get_model_lock():
 def get_embedding_model():
     """
     懒加载 sentence-transformers 模型（线程安全）
-    第一次调用时下载模型（~80MB），之后走缓存
-    通过 HF_ENDPOINT 环境变量控制镜像源（国内用 hf-mirror.com，国外不设）
+    模型文件已提交到 git（data/models/all-MiniLM-L6-v2），
+    直接从本地路径加载，不需要网络下载
     """
     global _embedding_model
     if _embedding_model is None:
         with _get_model_lock():
-            # 双重检查：拿到锁后再确认一次，防止等锁期间别的线程已加载完
             if _embedding_model is not None:
                 return _embedding_model
-            import os
-            if HF_ENDPOINT:
-                os.environ["HF_ENDPOINT"] = HF_ENDPOINT
             from sentence_transformers import SentenceTransformer
-            effective_endpoint = HF_ENDPOINT or "huggingface.co（默认）"
-            logger.info(f"正在加载模型 {EMBEDDING_MODEL}（{effective_endpoint}）...")
+            logger.info(f"正在从本地加载模型 {EMBEDDING_MODEL}...")
             _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
             logger.info("模型加载完成")
     return _embedding_model
