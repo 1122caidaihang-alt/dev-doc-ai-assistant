@@ -33,22 +33,22 @@ async def startup():
     from services.memory_service import load_all_sessions
     load_all_sessions()
 
-    # 后台线程加载模型，不阻塞端口绑定
-    # ⚠️ daemon 线程崩溃不会报错，必须 try/except 捕获并记日志
+    # 同步加载模型 — 本地很快但 Render 上可能要 1-3 分钟
+    # 在模型加载完成前不绑定端口，Render 端口扫描会重试直到成功
+    # 改为同步是因为：后台线程方式下 Render 进程会被健康检查杀掉重启，模型永远跑不完
     def _warmup():
         try:
             from ingestion.indexer import get_embedding, _set_model_ready
             import traceback
-            logger.info("后台加载 embedding 模型（本地磁盘）...")
+            logger.info("正在加载 embedding 模型（Render 上可能需 1-3 分钟）...")
             get_embedding("warmup")
             _set_model_ready()
             logger.info("embedding 模型加载完成")
         except Exception as e:
-            logger.error(f"模型后台加载失败: {e}")
+            logger.error(f"模型加载失败: {e}")
             logger.error(traceback.format_exc())
 
-    threading.Thread(target=_warmup, daemon=True).start()
-    logger.info("服务已启动（模型后台加载中...）")
+    _warmup()
 
 # CORS 跨域配置 — 前端 Vercel 调后端 Railway 需要这个
 app.add_middleware(
