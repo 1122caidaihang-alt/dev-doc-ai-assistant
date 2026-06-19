@@ -34,12 +34,18 @@ async def startup():
     load_all_sessions()
 
     # 后台线程加载模型，不阻塞端口绑定
+    # ⚠️ daemon 线程崩溃不会报错，必须 try/except 捕获并记日志
     def _warmup():
-        from ingestion.indexer import get_embedding, _set_model_ready
-        logger.info("后台加载 embedding 模型（本地磁盘）...")
-        get_embedding("warmup")
-        _set_model_ready()
-        logger.info("embedding 模型加载完成")
+        try:
+            from ingestion.indexer import get_embedding, _set_model_ready
+            import traceback
+            logger.info("后台加载 embedding 模型（本地磁盘）...")
+            get_embedding("warmup")
+            _set_model_ready()
+            logger.info("embedding 模型加载完成")
+        except Exception as e:
+            logger.error(f"模型后台加载失败: {e}")
+            logger.error(traceback.format_exc())
 
     threading.Thread(target=_warmup, daemon=True).start()
     logger.info("服务已启动（模型后台加载中...）")
@@ -56,13 +62,24 @@ app.add_middleware(
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """健康检查接口 — 确认后端和 Chroma 状态"""
+    """健康检查接口 — 确认后端、Chroma、模型状态"""
+    from ingestion.indexer import is_model_ready
     stats = get_collection_stats()
     return {
         "status": "ok",
         "chroma": "connected" if stats["count"] > 0 else "empty",
         "deepseek_api": "configured" if DEEPSEEK_API_KEY and DEEPSEEK_API_KEY != "sk-your-key-here" else "missing_key",
         "indexed_docs": stats["count"],
+        "model_ready": is_model_ready(),
+    }
+
+
+@app.get("/health/model")
+async def health_model():
+    """模型状态检查 — 单独端点方便 Render 日志排查"""
+    from ingestion.indexer import is_model_ready
+    return {
+        "model_ready": is_model_ready(),
     }
 
 
