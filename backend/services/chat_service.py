@@ -189,6 +189,11 @@ def ask_with_agent(question: str, session_id: str = "default"):
 
     agent = get_agent()
 
+    # ⚠️ 关键：先发一个 SSE 事件让数据流动，防止 Cloudflare 代理超时
+    # check_cache() → get_embedding() 需要模型，若后台预热未完成会阻塞
+    # 如果 0 字节就阻塞，Cloudflare 100 秒后断开 SSE 连接（502）
+    yield {"type": "thinking", "content": "Agent 正在分析问题意图..."}
+
     # ============================================
     # 第 0 步：检查语义缓存（Phase 6）
     # ============================================
@@ -207,7 +212,6 @@ def ask_with_agent(question: str, session_id: str = "default"):
     # ============================================
     # 第 1 步：加载对话记忆
     # ============================================
-    yield {"type": "thinking", "content": "Agent 正在分析问题意图..."}
 
     if has_history(session_id):
         token_info = get_history_token_usage(session_id)
