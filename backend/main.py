@@ -20,23 +20,29 @@ app = FastAPI(title="开发者文档 AI 知识助手", version="0.1.0")
 @app.on_event("startup")
 async def startup():
     """
-    服务启动：恢复持久化 session + 加载 embedding 模型
+    服务启动：恢复持久化 session + 后台加载 embedding 模型
 
     ChromaDB 已本地预建并提交到 git（12MB），部署时直接加载，不需入库。
-    模型也已提交到 git（data/models/，88MB），从本地磁盘加载 5-10 秒。
-    同步加载确保端口绑定前模型已就绪，首次请求不会阻塞。
+    模型已提交到 git（88MB），后台线程加载避免阻塞端口绑定。
+    前端请求时如模型未就绪，会发心跳事件保持 SSE 连接不断。
     """
     import logging
+    import threading
     logger = logging.getLogger("uvicorn")
 
     from services.memory_service import load_all_sessions
     load_all_sessions()
 
-    # 同步加载 embedding 模型（本地磁盘，5-10s）
-    logger.info("正在加载 embedding 模型（本地磁盘）...")
-    from ingestion.indexer import get_embedding
-    get_embedding("warmup")
-    logger.info("embedding 模型加载完成")
+    # 后台线程加载模型，不阻塞端口绑定
+    def _warmup():
+        from ingestion.indexer import get_embedding, _set_model_ready
+        logger.info("后台加载 embedding 模型（本地磁盘）...")
+        get_embedding("warmup")
+        _set_model_ready()
+        logger.info("embedding 模型加载完成")
+
+    threading.Thread(target=_warmup, daemon=True).start()
+    logger.info("服务已启动（模型后台加载中...）")
 
 # CORS 跨域配置 — 前端 Vercel 调后端 Railway 需要这个
 app.add_middleware(

@@ -189,10 +189,23 @@ def ask_with_agent(question: str, session_id: str = "default"):
 
     agent = get_agent()
 
-    # ⚠️ 关键：先发一个 SSE 事件让数据流动，防止 Cloudflare 代理超时
-    # check_cache() → get_embedding() 需要模型，若后台预热未完成会阻塞
-    # 如果 0 字节就阻塞，Cloudflare 100 秒后断开 SSE 连接（502）
+    # ⚠️ 先发 SSE 事件防止 Cloudflare 超时
     yield {"type": "thinking", "content": "Agent 正在分析问题意图..."}
+
+    # 等待模型就绪（后台加载中），每 2 秒发心跳保持 SSE 连接
+    from ingestion.indexer import is_model_ready
+    import time
+    if not is_model_ready():
+        yield {"type": "thinking", "content": "正在加载 AI 模型，请稍候..."}
+        for _ in range(90):  # 最长等 3 分钟
+            if is_model_ready():
+                break
+            time.sleep(2)
+            yield {"type": "thinking", "content": "模型加载中..."}
+        if not is_model_ready():
+            yield {"type": "error", "content": "模型加载超时，请稍后重试"}
+            return
+        yield {"type": "thinking", "content": "模型就绪，开始分析..."}
 
     # ============================================
     # 第 0 步：检查语义缓存（Phase 6）

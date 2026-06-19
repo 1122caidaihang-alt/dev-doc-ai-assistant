@@ -17,7 +17,7 @@ logger = get_logger("indexer")
 # 全局单例 — 模型只加载一次，后续复用
 _embedding_model = None
 _model_lock = None  # 线程锁，懒初始化
-
+_model_ready = False  # 模型就绪信号，启动时后台线程设置
 
 def _get_model_lock():
     """懒初始化线程锁（避免 import 时创建）"""
@@ -26,6 +26,15 @@ def _get_model_lock():
         import threading
         _model_lock = threading.Lock()
     return _model_lock
+
+def is_model_ready() -> bool:
+    """模型是否已加载完成（给 chat_service 做心跳等待用）"""
+    return _model_ready
+
+def _set_model_ready():
+    """标记模型就绪（启动时后台线程调用）"""
+    global _model_ready
+    _model_ready = True
 
 
 def get_embedding_model():
@@ -42,6 +51,8 @@ def get_embedding_model():
             from sentence_transformers import SentenceTransformer
             logger.info(f"正在从本地加载模型 {EMBEDDING_MODEL}...")
             _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+            global _model_ready
+            _model_ready = True
             logger.info("模型加载完成")
     return _embedding_model
 
