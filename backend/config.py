@@ -16,10 +16,11 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 DEEPSEEK_CHAT_MODEL = "deepseek-chat"
-# Embedding 模型 — 本地加载，不依赖网络下载
+# Embedding 模型 — ONNX Runtime 推理，不依赖 PyTorch
 # all-MiniLM-L6-v2: 384维，~88MB，CPU友好，中文支持良好
-# 模型文件已提交到 git（data/models/），部署时无需下载
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "./data/models/all-MiniLM-L6-v2")
+# 已转为 ONNX 格式（data/models/all-MiniLM-L6-v2-onnx/），部署时无需下载
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "./data/models/all-MiniLM-L6-v2")       # 原始 PyTorch 模型（备用）
+EMBEDDING_MODEL_ONNX = os.getenv("EMBEDDING_MODEL_ONNX", "./data/models/all-MiniLM-L6-v2-onnx")  # ONNX 模型（Render 用）
 
 # === Chroma 向量数据库 ===
 CHROMA_PERSIST_DIR = "./data/chroma_db"  # 持久化存储路径，重启不丢
