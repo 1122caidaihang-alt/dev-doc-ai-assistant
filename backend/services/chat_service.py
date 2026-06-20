@@ -38,7 +38,8 @@ def call_deepseek_chat(messages: List[Dict], stream: bool = True, max_tokens: in
         "stream": stream,
     }
 
-    response = httpx.post(url, headers=headers, json=body, timeout=60.0)
+    client = httpx.Client(proxy=None, timeout=60.0)
+    response = client.post(url, headers=headers, json=body)
     response.raise_for_status()
     return response
 

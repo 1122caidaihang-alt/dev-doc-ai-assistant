@@ -105,7 +105,9 @@ def rerank(
             "max_tokens": 500,
         }
 
-        response = httpx.post(url, headers=headers, json=body, timeout=30.0)
+        # 用 httpx 客户端绕过系统代理（国内网络代理常导致 SSL 错误）
+        client = httpx.Client(proxy=None, timeout=30.0)
+        response = client.post(url, headers=headers, json=body)
         response.raise_for_status()
 
         data = response.json()

@@ -198,26 +198,61 @@ async def chat(request: ChatRequest):
           data: <JSON 数据>\n\n
 
         前端用 EventSource 监听对应事件类型即可实时更新 UI
+
+        修复 Render 代理缓冲：ask_with_agent() 是同步生成器，Agent 推理阶段
+        会阻塞 30-60 秒。这段时间如果不发任何数据，Render 的反向代理会缓冲整个
+        响应。解决方案：
+        1. 开头先 yied 一条注释强制代理开始传输
+        2. 把同步生成器放到后台线程，主线程用 asyncio 轮询，每 1 秒发心跳注释
+        3. 更强的防缓冲 header（no-store, no-transform, X-Accel-Buffering）
         """
+        import asyncio
+        from queue import Queue, Empty
+
+        # 第一步：先 yied 注释强制代理立即开始传输
+        yield ":ok\n\n"
+
+        # 第二步：后台线程跑 ask_with_agent()，结果放入线程安全队列
+        chunk_queue = Queue()
+
+        def _run():
+            try:
+                for chunk in ask_with_agent(request.question, request.session_id):
+                    chunk_queue.put(chunk)
+                chunk_queue.put(None)  # 结束哨兵
+            except Exception as e:
+                chunk_queue.put({"type": "error", "content": str(e)})
+                chunk_queue.put(None)
+
+        thread = __import__("threading").Thread(target=_run, daemon=True)
+        thread.start()
+
+        # 第三步：主线程轮询队列，每秒发心跳防止代理缓冲
         try:
-            for chunk in ask_with_agent(request.question, request.session_id):
+            while True:
+                try:
+                    chunk = chunk_queue.get(timeout=0.8)
+                except Empty:
+                    # 800ms 没新数据 → 发心跳注释，冲刷代理缓冲区
+                    yield ":heartbeat\n\n"
+                    continue
+
+                if chunk is None:  # 结束哨兵
+                    break
+
                 chunk_type = chunk.get("type", "")
                 content = chunk.get("content", "")
 
                 if chunk_type == "thinking":
-                    # 思考步骤提示
                     yield f"event: thinking\ndata: {_sse_safe(content)}\n\n"
 
                 elif chunk_type == "memory":
-                    # Phase 4: 记忆加载事件 → 前端展示"已加载历史上下文"
                     yield f"event: memory\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
                 elif chunk_type == "cache_hit":
-                    # Phase 6: 缓存命中 → 前端展示"缓存命中"
                     yield f"event: cache_hit\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
                 elif chunk_type == "compressed":
-                    # Phase 4: 记忆压缩完成 → 前端展示压缩统计
                     yield f"event: compressed\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
                 elif chunk_type == "tool_call":
@@ -227,11 +262,9 @@ async def chat(request: ChatRequest):
                     yield f"event: tool_result\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
                 elif chunk_type == "tool_end":
-                    # 工具调用完成
                     yield f"event: tool_end\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
                 elif chunk_type == "answer":
-                    # 逐 token 推送答案，换行符替换为空格防止破坏 SSE 格式
                     yield f"event: answer\ndata: {_sse_safe(content)}\n\n"
 
                 elif chunk_type == "sources":
@@ -243,15 +276,16 @@ async def chat(request: ChatRequest):
                 elif chunk_type == "error":
                     yield f"event: error\ndata: {json.dumps({'message': content}, ensure_ascii=False)}\n\n"
 
-        except Exception as e:
-            yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
+        finally:
+            thread.join(timeout=5)
 
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-store, no-transform",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
+            "Content-Encoding": "identity",
         },
     )
