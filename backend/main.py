@@ -59,6 +59,12 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+async def root():
+    """根路径 — Render 健康检查默认打这里"""
+    return {"status": "ok"}
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """健康检查接口 — 确认后端、Chroma、模型状态"""
