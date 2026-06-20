@@ -59,7 +59,7 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     """根路径 — Render 健康检查默认打这里"""
     return {"status": "ok"}
